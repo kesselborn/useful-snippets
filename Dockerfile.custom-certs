@@ -1,9 +1,0 @@
-FROM alpine
-
-COPY custom-ca.crt /usr/local/share/ca-certificates/custom-ca.crt
-
-# install ca-certificate after copying certs, that will update the certs
-RUN apk add --no-cache ca-certificates
-
-# that's what most tutorials omit ... it's super important
-RUN ln -sf /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
