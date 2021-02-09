@@ -1,0 +1,75 @@
+# App for getting responses with a certain latency. Latency must be encoded like for sss.mmm (s = seconds, m = milli seconds)
+# - /001.100 -> 1 second and 100 milli seconds latency
+# - /030.010 -> 30 seconds and 10 milli seconds latency, etc.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: latencyapp
+  name: latencyapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: latencyapp
+  template:
+    metadata:
+      labels:
+        app: latencyapp
+    spec:
+      containers:
+      - image: alpine
+        env:
+        name: latencyapp
+        command:
+          - sh
+          - -c
+          - |
+            cat<<\EOF>/tmp/websphere
+            #!/bin/sh
+            read req
+            sleep=$(echo "$req"|grep -o '[0-9][0-9][0-9]\.[0-9][0-9][0-9]')
+
+            test -z "${sleep}" &&
+              echo -e "HTTP/1.1 404 \nContent-Length: 0\n" ||
+              { sleep ${sleep}; echo -e "HTTP/1.1 200 \nContent-Length: 42\n\nslept for ${sleep} seconds before replying"; }
+
+            EOF
+            chmod +x /tmp/websphere
+
+            exec nc -lk -s 0.0.0.0 -p 80 -e "/tmp/websphere"
+        ports:
+          - name: web
+            containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: latencyapp
+  name: latencyapp
+spec:
+  ports:
+  - name: web
+    port: 80
+    protocol: TCP
+    targetPort: web
+  selector:
+    app: latencyapp
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: latencyapp
+spec:
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - path: /latencyapp
+        backend:
+          serviceName: latencyapp
+          servicePort: 80

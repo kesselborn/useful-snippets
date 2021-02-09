@@ -1,0 +1,81 @@
+# app which a response with a certain size in bytes
+# /1024 -> returns a response with a 1kb body
+# /42   -> returns a response with a 42 byte body
+#
+# sub path works as well
+#
+# /prefix/1024 ->  returns a response with a 1kb body
+#
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: bytesapp
+  name: bytesapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bytesapp
+  template:
+    metadata:
+      labels:
+        app: bytesapp
+    spec:
+      containers:
+      - image: alpine
+        env:
+        name: bytesapp
+        command:
+          - sh
+          - -c
+          - |
+            cat<<\EOF>/tmp/websphere
+            #!/bin/sh
+            read req
+            length=$(echo "$req"|grep -o 'GET /.*[0-9][0-9]* '|grep -o '[0-9][0-9]*')
+            : ${length:?}
+            printf "%0${length}d" 0 > /tmp/body
+
+            printf "HTTP/1.1 200 \nContent-Length: ${length}\n\n$(cat /tmp/body)"
+            EOF
+            chmod +x /tmp/websphere
+
+            exec nc -lk -s 0.0.0.0 -p 80 -e "/tmp/websphere"
+
+        ports:
+          - name: web
+            containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bytesapp
+  name: bytesapp
+spec:
+  ports:
+  - name: web
+    port: 80
+    protocol: TCP
+    targetPort: web
+  selector:
+    app: bytesapp
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: bytesapp
+spec:
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - path: /bytesapp
+        backend:
+          serviceName: bytesapp
+          servicePort: 80
+
