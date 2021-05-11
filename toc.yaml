@@ -87,7 +87,7 @@ spec:
     app: toc
   type: ClusterIP
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: toc
@@ -97,6 +97,8 @@ spec:
     http:
       paths:
       - path: /
+        pathType: Exact
         backend:
-          serviceName: toc
-          servicePort: 80
+          name: toc
+          port:
+            number: 80

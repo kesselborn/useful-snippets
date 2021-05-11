@@ -62,7 +62,7 @@ spec:
     app: statusapp
   type: ClusterIP
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: statusapp
@@ -72,7 +72,10 @@ spec:
     http:
       paths:
       - path: /statusapp
+        pathType: Prefix
         backend:
-          serviceName: statusapp
-          servicePort: 80
+          service:
+            name: statusapp
+            port:
+              number: 80
 

@@ -111,11 +111,10 @@ install_manifests() {            # installs all *.yaml manifests
 
   if [ "${file}" = "ALL" ]
   then
-    (set -x; ls *.yaml|xargs -n 1 kubectl apply --wait -f) 
+    (set -x; echo "${manifest_files}"|grep -v "^ALL$" |xargs -n 1 kubectl apply --wait -f)
   else
     (set -x; kubectl apply --wait -f "${file}")
   fi
-
 }
 
 setup_cluster_and_install_apps() {
